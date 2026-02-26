@@ -1,0 +1,5 @@
+# AI Study Buddy - Dependencies
+
+streamlit>=1.32.0
+python-dotenv>=1.0.0
+google-genai>=0.3.0
