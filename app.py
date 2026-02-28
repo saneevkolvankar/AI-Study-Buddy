@@ -62,6 +62,7 @@ if study_text:
         ["Summary", "Flashcards", "Quiz", "Ask Questions"]
     )
 
+    # ---------- SUMMARY ----------
     with tab1:
         st.subheader("Summary")
         if st.button("Generate Summary"):
@@ -71,24 +72,99 @@ if study_text:
                 )
                 st.success(summary)
 
+    # ---------- FLASHCARDS ----------
     with tab2:
         st.subheader("Flashcards")
+
         if st.button("Generate Flashcards"):
             with st.spinner("Creating flashcards..."):
-                flashcards = ask_gemini(
-                    "Create flashcards (Q&A):\n" + study_text[:1500]
-                )
-                st.success(flashcards)
+                flashcards_text = ask_gemini(
+                    """Create 5 flashcards from the text.
 
+Return format EXACTLY like:
+
+Flashcard 1
+Question: ...
+Answer: ...
+
+Text:
+""" + study_text[:1500]
+                )
+                st.session_state.flashcards = flashcards_text
+
+        if "flashcards" in st.session_state:
+            cards = st.session_state.flashcards.split("Flashcard")
+
+            for card in cards:
+                if card.strip() == "":
+                    continue
+
+                lines = card.strip().split("\n")
+
+                title = lines[0]
+                question = ""
+                answer = ""
+
+                for line in lines:
+                    if line.startswith("Question"):
+                        question = line.replace("Question:", "").strip()
+                    if line.startswith("Answer"):
+                        answer = line.replace("Answer:", "").strip()
+
+                st.success(f"Flashcard {title}")
+                st.write(f"**Question:** {question}")
+                st.write(f"**Answer:** {answer}")
+                st.write("---")
+
+    # ---------- QUIZ ----------
     with tab3:
         st.subheader("Quiz")
+
         if st.button("Generate Quiz"):
             with st.spinner("Generating quiz..."):
-                quiz = ask_gemini(
-                    "Create 5 MCQs with answers:\n" + study_text[:1500]
-                )
-                st.success(quiz)
+                quiz_text = ask_gemini(
+                    """Create 5 multiple choice questions.
 
+Return format:
+
+Q1: question
+A) option
+B) option
+C) option
+D) option
+Answer: A
+
+Text:
+""" + study_text[:1500]
+                )
+                st.session_state.quiz = quiz_text
+
+        if "quiz" in st.session_state:
+            questions = st.session_state.quiz.split("Q")
+
+            for q in questions:
+                if q.strip() == "":
+                    continue
+
+                lines = q.strip().split("\n")
+                question = lines[0]
+                options = lines[1:5]
+                answer_line = lines[-1]
+                correct = answer_line.split(":")[-1].strip()
+
+                st.write(f"### {question}")
+
+                choice = st.radio("Choose answer:", options, key=question)
+
+                if st.button(f"Check {question}", key="btn"+question):
+                    if choice.startswith(correct):
+                        st.success("✅ Correct!")
+                    else:
+                        st.error(f"❌ Correct answer: {correct}")
+
+                st.write("---")
+
+    # ---------- ASK QUESTIONS ----------
     with tab4:
         st.subheader("Ask a Question about the Material")
         user_question = st.text_input("Enter your question:")
